@@ -1,99 +1,105 @@
 // server.js
 require('dotenv').config();
+const fs = require('fs');
 const path = require('path');
+const http = require('http');
+const https = require('https');
 const express = require('express');
 const { DatadomeExpress } = require('@datadome/module-express');
 
+const MAIN_PORT = process.env.PORT || 3000;
+const API_HOST = 'api.localhost';
+const API_PORT = 3443;
+
 const app = express();
+const ddMain = new DatadomeExpress(process.env.DATADOME_SERVER_KEY);
+app.use(ddMain.middleware());
 
-// DataDome server-side protection (must be before routes/static)
-const datadomeClient = new DatadomeExpress(process.env.DATADOME_SERVER_KEY);
-app.use(datadomeClient.middleware());
-
-// Serve static assets (home page)
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Home (optional explicit)
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+// /
+app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-// XHR endpoint: returns request/response headers (JSON)
+// /any-xhr
 app.get('/any-xhr', (req, res) => {
-  const requestHeaders = req.headers;
-  const responseHeaders = res.getHeaders();
-  res.json({ requestHeaders, responseHeaders });
+  res.json({ requestHeaders: req.headers, responseHeaders: res.getHeaders() });
 });
 
-// Document endpoint: full page with headers (Tailwind + client tag)
+// /any-document
 app.get('/any-document', (req, res) => {
-  const requestHeaders = req.headers;
-  const responseHeaders = res.getHeaders();
-
   const renderHeaders = (headers) =>
     Object.entries(headers || {})
-      .map(
-        ([k, v]) =>
-          `<div><span class="text-blue-700 font-semibold">${k}:</span> <span class="text-slate-800 break-all">${v}</span></div>`
-      )
+      .map(([k, v]) => `<div><span class="font-semibold text-blue-700">${k}:</span> <span>${v}</span></div>`)
       .join('');
-
   res.send(`<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-    <!-- Tailwind via CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- DataDome JS Tag -->
-    <script>
-      window.ddjskey = '5937CB836686F83D473E0A7011FA0E';
-      window.ddoptions = { ajaxListenerPath: true, ajaxListenerPathDepth: 2 };
-    </script>
-    <script src="https://js.datadome.co/tags.js" async></script>
-
-    <title>/any-document</title>
-  </head>
-  <body class="min-h-screen bg-slate-50 text-slate-900">
-    <main class="mx-auto max-w-4xl p-8">
-      <header class="mb-8">
-        <h1 class="text-3xl font-bold">/any-document</h1>
-        <p class="mt-2 text-slate-600">Full document navigation protected by DataDome.</p>
-      </header>
-
-      <section>
-        <h2 class="text-xl font-semibold mb-2">Request Headers</h2>
-        <div class="bg-slate-100 p-3 rounded shadow space-y-1">${renderHeaders(requestHeaders)}</div>
-
-        <h2 class="text-xl font-semibold mt-6 mb-2">Response Headers</h2>
-        <div class="bg-slate-100 p-3 rounded shadow space-y-1">${renderHeaders(responseHeaders)}</div>
-      </section>
-
-      <section class="mt-8 bg-white p-6 rounded-xl shadow">
-        <h2 class="text-xl font-semibold mb-3">Challenge triggers (set request header)</h2>
-        <p class="text-slate-700 mb-3">
-          Set your <span class="font-semibold">User-Agent</span> header (using devTools) to the following values to trigger challenges:
-        </p>
-        <ul class="list-disc pl-6 space-y-1 text-slate-800">
-          <li><code>BLOCKUA</code> → CAPTCHA</li>
-          <li><code>BLOCKUA-HARDBLOCK</code> → CAPTCHA then HARDBLOCK</li>
-          <li><code>DeviceCheckTestUA</code> → DeviceCheck</li>
-          <li><code>DeviceCheckTestUA-BLOCKUA</code> → DeviceCheck then CAPTCHA</li>
-          <li><code>DeviceCheckTestUA-HARDBLOCK</code> → DeviceCheck then HARDBLOCK</li>
-          <li><code>HARDBLOCKUA</code> → HARDBLOCK</li>
-          <li><code>HARDBLOCK_UA</code> → HARDBLOCK on XHR on Cross-Domain</li>
-        </ul>
-      </section>
-
-      <a href="/" class="inline-block mt-8 text-blue-600 hover:underline">⬅ Back to Home</a>
-    </main>
-  </body>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    window.ddjskey='5937CB836686F83D473E0A7011FA0E';
+    window.ddoptions={ajaxListenerPath:true,ajaxListenerPathDepth:2,ajaxListenerWithCredentials:true};
+  </script>
+  <script src="https://js.datadome.co/tags.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <title>/any-document</title>
+</head>
+<body class="p-8">
+  <h1 class="text-2xl font-bold mb-4">/any-document</h1>
+  <h2 class="font-semibold">Request Headers</h2>
+  <div class="bg-slate-100 p-2 mb-4">${renderHeaders(req.headers)}</div>
+  <h2 class="font-semibold">Response Headers</h2>
+  <div class="bg-slate-100 p-2">${renderHeaders(res.getHeaders())}</div>
+</body>
 </html>`);
 });
 
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Listening on http://localhost:${port}`);
+http.createServer(app).listen(MAIN_PORT, () => {
+  console.log(`🌐 Main app: http://localhost:${MAIN_PORT}`);
 });
+
+// -------- Cross-origin API --------
+const apiApp = express();
+const ddApi = new DatadomeExpress(process.env.DATADOME_SERVER_KEY);
+apiApp.use(ddApi.middleware());
+
+// Preflight
+apiApp.options('/cross-origin-xhr', (req, res) => {
+  const origin = req.headers.origin;
+  if (origin) {
+    res.set('Access-Control-Allow-Origin', origin);
+    res.set('Vary', 'Origin');
+  }
+  res.set('Access-Control-Allow-Methods', 'GET,OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type, User-Agent');
+  res.set('Access-Control-Allow-Credentials', 'true');
+  res.sendStatus(204);
+});
+
+// /cross-origin-xhr
+apiApp.get('/cross-origin-xhr', (req, res) => {
+  const origin = req.headers.origin;
+  if (origin) {
+    res.set('Access-Control-Allow-Origin', origin);
+    res.set('Vary', 'Origin');
+  }
+  res.set('Access-Control-Allow-Methods', 'GET,OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type, User-Agent');
+  res.set('Access-Control-Allow-Credentials', 'true');
+  res.json({ requestHeaders: req.headers, responseHeaders: res.getHeaders() });
+});
+
+const keyPath = path.join(__dirname, 'api.localhost-key.pem');
+const certPath = path.join(__dirname, 'api.localhost.pem');
+if (!fs.existsSync(keyPath) || !fs.existsSync(certPath)) {
+  console.error('❌ Missing TLS files. Run: mkcert api.localhost');
+  process.exit(1);
+}
+https
+  .createServer(
+    { key: fs.readFileSync(keyPath), cert: fs.readFileSync(certPath) },
+    apiApp
+  )
+  .listen(API_PORT, '0.0.0.0', () => {
+    console.log(`🔒 API: https://${API_HOST}:${API_PORT}/cross-origin-xhr`);
+  });
