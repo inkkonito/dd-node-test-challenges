@@ -1,0 +1,20 @@
+{
+  "name": "datadome-express-demo",
+  "version": "1.0.0",
+  "description": "Express server protected by DataDome, Tailwind via CDN, XHR + document endpoints showing headers.",
+  "main": "server.js",
+  "scripts": {
+    "dev": "nodemon server.js",
+    "start": "node server.js"
+  },
+  "keywords": ["express", "datadome", "security", "bot-protection", "tailwind", "cdn"],
+  "license": "MIT",
+  "dependencies": {
+    "@datadome/module-express": "^2.2.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
