@@ -5,9 +5,18 @@
   "main": "server.js",
   "scripts": {
     "dev": "nodemon server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev:tunnel": "node scripts/start-with-tunnel.js dev",
+    "start:tunnel": "node scripts/start-with-tunnel.js prod"
   },
-  "keywords": ["express", "datadome", "security", "bot-protection", "tailwind", "cdn"],
+  "keywords": [
+    "express",
+    "datadome",
+    "security",
+    "bot-protection",
+    "tailwind",
+    "cdn"
+  ],
   "license": "MIT",
   "dependencies": {
     "@datadome/module-express": "^2.2.0",
@@ -15,6 +24,7 @@
     "express": "^4.21.2"
   },
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "nodemon": "^3.1.0"
   }
 }
