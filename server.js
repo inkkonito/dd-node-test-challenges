@@ -41,7 +41,70 @@ app.get('/any-document', (req, res) => {
     window.ddoptions={ajaxListenerPath:true,ajaxListenerPathDepth:2,ajaxListenerWithCredentials:true};
   </script>
   <script src="https://js.datadome.co/tags.js"></script>
+  <script>
+    (function() {
+      function fixDataDomeContainer() {
+        const selectors = [
+          '[id*="datadome"]', '[class*="datadome"]', '[id*="captcha"]', '[class*="captcha"]',
+          'iframe[src*="datadome"]', 'iframe[src*="captcha-delivery"]',
+          'body > div[style*="z-index: 2147483647"]', 'body > div[style*="z-index: 10000"]'
+        ];
+        selectors.forEach(selector => {
+          document.querySelectorAll(selector).forEach(el => {
+            if (el && el.parentElement === document.body) {
+              el.style.cssText = 'position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:0!important;width:100vw!important;height:100vh!important;max-width:none!important;max-height:none!important;z-index:2147483647!important;margin:0!important;padding:0!important;';
+            }
+          });
+        });
+      }
+      fixDataDomeContainer();
+      const observer = new MutationObserver(fixDataDomeContainer);
+      observer.observe(document.body || document.documentElement, {childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class', 'id']});
+      setInterval(fixDataDomeContainer, 100);
+    })();
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* DataDome Challenge CSS Fix */
+    html, body {
+      height: auto !important;
+      min-height: 100vh !important;
+      position: relative !important;
+      overflow-x: hidden !important;
+    }
+    #datadome,
+    #datadome-iframe,
+    [id^="datadome"],
+    [class*="datadome"],
+    [id*="captcha"],
+    [class*="captcha"],
+    iframe[src*="datadome"],
+    iframe[src*="captcha-delivery"],
+    iframe[src*="interstitial"],
+    div[style*="position: absolute"][style*="z-index"],
+    body > div[style*="position"][style*="z-index: 2147483647"],
+    body > div[style*="position"][style*="z-index: 10000"] {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      max-width: none !important;
+      max-height: none !important;
+      min-width: 100vw !important;
+      min-height: 100vh !important;
+      z-index: 2147483647 !important;
+      border: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      transform: none !important;
+    }
+    body > div[style*="z-index"] * {
+      max-width: none !important;
+    }
+  </style>
   <title>/any-document</title>
 </head>
 <body class="p-8">
